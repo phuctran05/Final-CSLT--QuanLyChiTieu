@@ -7,53 +7,69 @@ using System.Globalization;
 using System.Threading.Tasks;
 using System.Text;
 using System.Xml;
+using Newtonsoft.Json.Linq;
 
 namespace QuanLyChiTieu
 {
-    public class GiaoDich
+    public class TaiChinh
     {
-        public int SoThuTu { get; set; }
-        public string MoTa { get; set; }
-        public string DanhMuc { get; set; }
-        public double SoTien { get; set; }
-        public string DonViTienTe { get; set; } 
-        public DateTime ThoiGian { get; set; }
+        public class GiaoDich
+        {
+            public int SoThuTu { get; set; }
+            public string MoTa { get; set; }
+            public string DanhMuc { get; set; }
+            public double SoTien { get; set; }
+            public string DonViTienTe { get; set; }
+            public DateTime ThoiGian { get; set; }
+        }
+
+        public class QuanLyNganSach
+        {
+            public string ThangNam { get; set; }
+            public double HanMuc { get; set; }
+        }
     }
 
     class Program
     {
-        private static List<GiaoDich> danhSachGiaoDich = new List<GiaoDich>();
-        private static string filePath = "dulieu_giaodich.json"; // Tên file lưu trữ
+        private static List<TaiChinh.GiaoDich> danhSachGiaoDich = new List<TaiChinh.GiaoDich>();
+        private static string filePath = "dulieu_giaodich.json";
+
+        private static List<TaiChinh.QuanLyNganSach> danhSachHanMuc = new List<TaiChinh.QuanLyNganSach>();
+        private static string hanMucFilePath = "dulieu_hanmuc.json";
+
 
         static void Main(string[] args)
         {
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
-            Console.WriteLine("Chào mừng đến với chương trình Quản lý Chi tiêu!");
+            Console.WriteLine("Welcome to the Expense Management Program!");
             Console.WriteLine("-------------------------------------------------");
 
             // Đọc dữ liệu từ file nếu tồn tại
             DocDuLieu();
+            DocDuLieuHanMuc();
 
             bool isRunning = true;
 
             while (isRunning)
             {
                 Console.WriteLine("\n--- MENU ---");
-                Console.WriteLine("1. Nhập giao dịch mới");
-                Console.WriteLine("2. Sửa giao dịch");
-                Console.WriteLine("3. Truy xuất giao dịch");
-                Console.WriteLine("4. Gợi ý tối ưu hóa chi tiêu");
-                Console.WriteLine("5. Thống kê và báo cáo chi tiêu");
-                Console.WriteLine("6. Xuất/Nhập tệp dữ liệu");
-                Console.WriteLine("7. Thoát");
+                Console.WriteLine("1. Enter a new transaction");
+                Console.WriteLine("2. Edit/Delete a transaction");
+                Console.WriteLine("3. Retrieve transaction");
+                Console.WriteLine("4. Manage and check budget");
+                Console.WriteLine("5. Generate expense reports");
+                Console.WriteLine("6. Export/Import data file");
+                Console.WriteLine("7. Exit");
 
-                Console.Write("Chọn chức năng: ");
+                Console.Write("Select a function: ");
                 string luaChon = Console.ReadLine();
 
                 switch (luaChon)
                 {
                     case "1":
-                        NhapGiaoDichMoi();
+                        NhapGiaoDichMoi().Wait(); // Gọi hàm xử lý giao dịch
+                        Console.WriteLine("\nPress any key to return to the menu....");
+                        Console.ReadKey(); // Chờ người dùng nhập phím trước khi quay lại menu
                         break;
                     case "2":
                         SuaGiaoDich();
@@ -62,7 +78,7 @@ namespace QuanLyChiTieu
                         TruyXuatGiaoDich();
                         break;
                     case "4":
-                        GoiYToiUuHoaChiTieu();
+                        QuanLyVaKiemTraHanMuc();
                         break;
                     case "5":
                         ThongKeBaoCao();
@@ -71,15 +87,17 @@ namespace QuanLyChiTieu
                         XuatNhapDuLieu();
                         break;
                     case "7":
-                        Console.WriteLine("Đã thoát chương trình. Tạm biệt!");
+                        Console.WriteLine("Program has exited. Goodbye!");
                         isRunning = false;
                         break;
                     default:
-                        Console.WriteLine("Lựa chọn không hợp lệ. Vui lòng thử lại.");
+                        Console.WriteLine("Invalid choice. Please try again.");
                         break;
                 }
             }
         }
+
+
 
         // Hàm để đọc dữ liệu trong file
         static void DocDuLieu()
@@ -92,22 +110,22 @@ namespace QuanLyChiTieu
                     string jsonData = File.ReadAllText(filePath);
 
                     // Chuyển đổi chuỗi JSON thành danh sách giao dịch
-                    danhSachGiaoDich = JsonConvert.DeserializeObject<List<GiaoDich>>(jsonData);
+                    danhSachGiaoDich = JsonConvert.DeserializeObject<List<TaiChinh.GiaoDich>>(jsonData);
 
-                    Console.WriteLine("Dữ liệu giao dịch đã được tải thành công.");
+                    Console.WriteLine("Transaction data has been successfully loaded");
                 }
                 else
                 {
                     // Tạo file mới nếu không tồn tại
-                    Console.WriteLine("Không tìm thấy tệp dữ liệu. Bắt đầu với danh sách rỗng.");
+                    Console.WriteLine("Data file not found. Starting with an empty list.");
                     // Tạo file mới
                     File.Create(filePath).Close();
-                    Console.WriteLine("Tạo tệp mới: " + filePath);
+                    Console.WriteLine("Create a new file: " + filePath);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi đọc dữ liệu: {ex.Message}");
+                Console.WriteLine($"Error reading data: {ex.Message}");
             }
         }
 
@@ -123,11 +141,11 @@ namespace QuanLyChiTieu
                 // Ghi dữ liệu JSON vào file
                 File.WriteAllText(filePath, jsonData);
 
-                Console.WriteLine("Dữ liệu đã được lưu thành công vào file.");
+                Console.WriteLine("Data has been successfully saved to the file.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi lưu dữ liệu: {ex.Message}");
+                Console.WriteLine($"Error saving data: {ex.Message}");
             }
         }
 
@@ -135,160 +153,251 @@ namespace QuanLyChiTieu
         /// Chức năng 1: Thêm giao dịch mới
         /// </summary>
         /// <exception cref="FormatException"></exception>
-        static void NhapGiaoDichMoi()
+        static async Task NhapGiaoDichMoi()
         {
+            if (danhSachGiaoDich == null)
+            {
+                danhSachGiaoDich = new List<TaiChinh.GiaoDich>();
+            }
             try
             {
-                // Bước 1: Yêu cầu người dùng nhập mô tả và số tiền kèm đơn vị tiền tệ
-                Console.WriteLine("\nNhập mô tả giao dịch:");
+                // Bước 1: Nhập mô tả và số tiền
+                Console.WriteLine("\nEnter transaction description (at least 5 words):");
                 string moTa = Console.ReadLine();
 
-                Console.WriteLine("Nhập số tiền (định dạng: 'số tiền đơn vị tiền tệ', ví dụ: 100 USD):");
+                // Tách chuỗi thành mảng các từ
+                string[] words = moTa.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Kiểm tra số lượng từ
+                while (words.Length < 5)
+                {
+                    Console.WriteLine("Re-enter transaction description (at least 5 words):");
+                    moTa = Console.ReadLine();
+
+                    // Cập nhật lại mảng words với mô tả mới
+                    words = moTa.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                }
+
+                Console.WriteLine("Enter amount (format: 'amount currency unit', e.g., 1000 VND):");
                 string inputTien = Console.ReadLine();
                 string[] tienVaDonVi = inputTien.Split(' ');
 
                 if (tienVaDonVi.Length != 2)
                 {
-                    throw new FormatException("Định dạng không hợp lệ. Vui lòng nhập theo định dạng 'số tiền đơn vị tiền tệ'.");
+                    throw new FormatException("Invalid format. Please enter in the format 'amount currency unit'.");
                 }
 
                 double soTien = double.Parse(tienVaDonVi[0]);
                 string donViTienTe = tienVaDonVi[1].ToUpper();
 
-                // Gọi API chuyển đổi ngoại tệ nếu đơn vị tiền tệ không phải VND
+                // Gọi API chuyển đổi ngoại tệ nếu cần
                 if (donViTienTe != "VND")
                 {
                     soTien = ChuyenDoiNgoaiTe(soTien, donViTienTe);
-                    Console.WriteLine($"Số tiền đã chuyển đổi sang VND: {soTien}");
-                    donViTienTe = "VND"; // Đơn vị sau chuyển đổi luôn là VND
+                    Console.WriteLine($"Amount converted to VND: {soTien}");
+                    donViTienTe = "VND";
                 }
 
-                // Gợi ý mô tả giao dịch cùng danh mục và thời gian
-                string danhMucGoiY = GoiYDanhMuc(moTa);
+                // Bước 2: Gợi ý danh mục và thời gian
+                string danhMucGoiY = await GoiYDanhMuc(moTa);
                 DateTime thoiGianGoiY = DateTime.Now;
-                Console.WriteLine($"Hệ thống gợi ý giao dịch như sau:\n - Mô tả: {moTa}\n - Số tiền: {soTien} VND\n - Danh mục: {danhMucGoiY}\n - Thời gian: {thoiGianGoiY}");
+                string thoiGianChuoi = thoiGianGoiY.ToString("yyyy-MM-dd HH:mm:ss");
+                Console.WriteLine($"Transaction suggestion system:\n - Description: {moTa}\n - Amount: {soTien} VND\n - Category: {danhMucGoiY}\n - Time: {thoiGianChuoi}");
 
-                // Hỏi người dùng có đồng ý với gợi ý không
-                Console.WriteLine("Bạn có đồng ý với gợi ý này không? (y/n):");
-                string dongY = Console.ReadLine().Trim().ToLower();
-
+                // Bước 3: Nhập ý kiến người dùng
                 string danhMuc;
                 DateTime thoiGian;
 
-                if (dongY == "y")
+                while (true)
                 {
-                    danhMuc = danhMucGoiY;
-                    thoiGian = thoiGianGoiY;
-                }
-                else
-                {
-                    // Yêu cầu người dùng tự nhập danh mục và thời gian nếu không đồng ý
-                    Console.WriteLine("Nhập danh mục:");
-                    danhMuc = Console.ReadLine();
+                    Console.WriteLine("Do you agree with this suggestion? (y/n):");
+                    string dongY = Console.ReadLine().Trim().ToLower();
 
-                    Console.WriteLine("Nhập thời gian giao dịch (yyyy-MM-dd HH:mm:ss):");
-                    thoiGian = DateTime.Parse(Console.ReadLine());
-                }
+                    if (dongY == "y")
+                    {
+                        danhMuc = danhMucGoiY;
+                        thoiGian = thoiGianGoiY;
+                        break;
+                    }
+                    else if (dongY == "n")
+                    {
+                        // Bắt buộc nhập danh mục không được trống
+                        while (true)
+                        {
+                            Console.WriteLine("Enter category:");
+                            danhMuc = Console.ReadLine().Trim();
+                            if (!string.IsNullOrEmpty(danhMuc))
+                            {
+                                break; // Dữ liệu hợp lệ, thoát vòng lặp
+                            }
+                            else
+                            {
+                                Console.WriteLine("Category cannot be empty. Please try again.");
+                            }
+                        }
 
-                // Gán số thứ tự cho giao dịch
+                        // Bắt buộc nhập thời gian giao dịch hợp lệ
+                        while (true)
+                        {
+                            Console.WriteLine("Enter transaction time (yyyy-MM-dd HH:mm:ss):");
+                            string inputThoiGian = Console.ReadLine().Trim();
+
+                            if (DateTime.TryParseExact(inputThoiGian, "yyyy-MM-dd HH:mm:ss", null, System.Globalization.DateTimeStyles.None, out thoiGian))
+                            {
+                                break; // Dữ liệu hợp lệ, thoát vòng lặp
+                            }
+                            else
+                            {
+                                Console.WriteLine("Invalid datetime format. Please try again.");
+                            }
+                        }
+                        break; // Thoát vòng lặp lớn khi hoàn tất
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid choice. Please enter 'y' or 'n'.");
+                    }
+                }
+                string thoiGianThuc = thoiGian.ToString("yyyy-MM-dd HH:mm:ss");
+
+                // Bước 4: Thêm giao dịch vào danh sách
                 int soThuTu = danhSachGiaoDich.Count + 1;
-
-                // Thêm giao dịch vào danh sách
-                danhSachGiaoDich.Add(new GiaoDich
+                danhSachGiaoDich.Add(new TaiChinh.GiaoDich
                 {
                     SoThuTu = soThuTu,
                     MoTa = moTa,
                     SoTien = soTien,
                     DonViTienTe = donViTienTe,
                     DanhMuc = danhMuc,
-                    ThoiGian = thoiGian
+                    ThoiGian = DateTime.Parse(thoiGianThuc)
                 });
 
-                Console.WriteLine("Giao dịch đã được thêm thành công.");
-
-                // Lưu dữ liệu vào file
+                Console.WriteLine("Transaction has been successfully added");
                 LuuDuLieu();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi nhập giao dịch: {ex.Message}");
+                Console.WriteLine($"Error entering transaction: {ex.Message}");
             }
         }
 
-        static string GoiYDanhMuc(string moTa)
+
+        public static async Task<string> GoiYDanhMuc(string moTa)
         {
-            try
+            // API key và URL của Google Cloud Natural Language API
+            string apiKey = "...";
+            string url = "https://language.googleapis.com/v1/documents:classifyText?key=" + apiKey;
+
+            // Thêm text để đảm bảo số lượng token
+            string text = $"{moTa} with my family, including my dad, my mom, my son, my sister and my brother";
+
+            // Tạo đối tượng JSON yêu cầu
+            var requestData = new
             {
-                // Lấy API key từ biến môi trường
-                string apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-                if (string.IsNullOrEmpty(apiKey))
+                document = new
                 {
-                    Console.WriteLine("API key không được tìm thấy. Vui lòng kiểm tra biến môi trường 'OPENAI_API_KEY'.");
-                    return "Không xác định";
+                    type = "PLAIN_TEXT",
+                    content = text
                 }
+            };
 
-                // Đọc dữ liệu mẫu từ file
-                if (!File.Exists("du_lieu_mau.txt"))
+            // Gọi API và nhận phản hồi
+            var response = await CallGoogleCloudAPI(url, requestData);
+
+            // Nếu phản hồi không rỗng, phân tích kết quả
+            if (!string.IsNullOrEmpty(response))
+            {
+                try
                 {
-                    Console.WriteLine("File 'du_lieu_mau.txt' không tồn tại.");
-                    return "Không xác định";
-                }
+                    var categoryKeywords = new Dictionary<string, List<string>>
+        {
+            { "Food", new List<string> { "food", "drink", "beverage", "cooking", "recipes", "grocery","restaurants" } },
+            { "Housing & Lifestyle", new List<string> {"shopping","computers", "electronics","finance","home","garden","internet","telecom","jobs","communities","news","law","society","communites" } },
+            { "Transportation", new List<string> { "autos","motor","vehicles","gas","fueling","retailers","dealers","travel","transportation" } },
+            { "Education", new List<string> { "books","literature","education" } },
+            { "Healthcare & Beauty", new List<string> { "fitness","health","medical","beauty","body","hair","weight","fashion","insurance" } },
+            { "Entertainment & Hobbies", new List<string> {"sports","books","hobbies","leisure","games","pets","event","celebrities","humor","entertainment","movies","music","audio","art","design" } },
+            { "Work & Career", new List<string> {"business", "industrial", "trade","investing","jobs" } }
+        };
 
-                string duLieuMau = File.ReadAllText("du_lieu_mau.txt");
+                    // Phân tích phản hồi JSON
+                    var jsonResponse = JObject.Parse(response);
+                    var categories = jsonResponse["categories"];
 
-                // Cấu hình prompt cho API
-                string prompt = $"Dựa trên dữ liệu mẫu sau đây và mô tả giao dịch, hãy phân loại danh mục phù hợp:\n\nDữ liệu mẫu:\n{duLieuMau}\n\nMô tả giao dịch:\n{moTa}\n\nDanh mục phù hợp:";
-
-                // Gọi API ChatGPT
-                using (var client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
-
-                    var requestBody = new
+                    if (categories != null && categories.Any())
                     {
-                        model = "gpt-3.5-turbo",
-                        messages = new[]
+                        // Lấy category có confidence cao nhất
+                        var highestConfidenceCategory = categories
+                            .OrderByDescending(category => (float)category["confidence"])
+                            .FirstOrDefault();
+
+                        if (highestConfidenceCategory != null)
                         {
-                    new { role = "system", content = "Bạn là một trợ lý phân loại thông tin." },
-                    new { role = "user", content = prompt }
-                },
-                        max_tokens = 50
-                    };
+                            string categoryName = highestConfidenceCategory["name"].ToString();
 
-                    var content = new StringContent(
-                        Newtonsoft.Json.JsonConvert.SerializeObject(requestBody),
-                        Encoding.UTF8,
-                        "application/json"
-                    );
-
-                    var response = client.PostAsync("https://api.openai.com/v1/chat/completions", content).Result;
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine($"Lỗi từ API: {response.StatusCode} - {response.ReasonPhrase}");
-                        string errorContent = response.Content.ReadAsStringAsync().Result;
-                        Console.WriteLine($"Chi tiết lỗi: {errorContent}");
-                        return "Không xác định";
+                            // Tìm danh mục tương đồng nhất dựa trên từ khóa
+                            return FindBestMatch(categoryName, categoryKeywords);
+                        }
                     }
-
-                    string result = response.Content.ReadAsStringAsync().Result;
-                    dynamic jsonResponse = Newtonsoft.Json.JsonConvert.DeserializeObject(result);
-                    return jsonResponse.choices[0].message.content.Trim();
+                    return "Unknown"; // Nếu không tìm thấy danh mục phù hợp
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error processing response: " + ex.Message);
+                    return "Unknown";
                 }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Lỗi khi gợi ý danh mục: {ex.Message}");
-                return "Không xác định";
-            }
+
+            return "No response from API";
         }
 
+        // Hàm tìm danh mục tương đồng nhất dựa trên từ khóa
+        public static string FindBestMatch(string inputCategory, Dictionary<string, List<string>> categoryKeywords)
+        {
+            var tokens = inputCategory.ToLower().Split(new[] { ' ', '/', '&', '-', '_', ',' }, StringSplitOptions.RemoveEmptyEntries);
+
+            string bestMatch = null;
+            int maxMatches = 0;
+
+            foreach (var entry in categoryKeywords)
+            {
+                int matchCount = entry.Value.Intersect(tokens).Count(); // Đếm từ khóa khớp
+                if (matchCount > maxMatches)
+                {
+                    maxMatches = matchCount;
+                    bestMatch = entry.Key;
+                }
+            }
+
+            return bestMatch ?? "Unknown"; // Nếu không tìm thấy danh mục phù hợp
+        }
+
+        // Hàm gọi Google Cloud Natural Language API
+        public static async Task<string> CallGoogleCloudAPI(string url, object requestData)
+        {
+            using (var client = new HttpClient())
+            {
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(requestData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                var response = await client.PostAsync(url, content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadAsStringAsync();
+                }
+                else
+                {
+                    return $"Error: {response.StatusCode}. {await response.Content.ReadAsStringAsync()}";
+                }
+            }
+        }
         static double ChuyenDoiNgoaiTe(double soTien, string donViTienTe)
         {
             try
             {
                 // API Endpoint và API Key 
-                string apiKey = "YOUR_API_KEY";
+                string apiKey = "...";
                 string url = $"https://v6.exchangerate-api.com/v6/{apiKey}/latest/{donViTienTe}";
 
                 // Gọi API ExchangeRate
@@ -297,7 +406,7 @@ namespace QuanLyChiTieu
                     var response = client.GetAsync(url).Result;
                     if (!response.IsSuccessStatusCode)
                     {
-                        throw new Exception("Không thể lấy tỷ giá từ API.");
+                        throw new Exception("Unable to retrieve exchange rate from the API.");
                     }
 
                     string result = response.Content.ReadAsStringAsync().Result;
@@ -307,17 +416,17 @@ namespace QuanLyChiTieu
                     if (jsonResponse.conversion_rates != null && jsonResponse.conversion_rates.VND != null)
                     {
                         double tiGia = (double)jsonResponse.conversion_rates.VND;
-                        return soTien * tiGia;
+                        return Math.Round(soTien * tiGia, 0);
                     }
                     else
                     {
-                        throw new Exception("Không tìm thấy tỷ giá cho đơn vị tiền tệ này.");
+                        throw new Exception("Exchange rate for this currency not found.");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi chuyển đổi ngoại tệ: {ex.Message}");
+                Console.WriteLine($"Error converting foreign currency: {ex.Message}");
                 throw;
             }
         }
@@ -329,222 +438,480 @@ namespace QuanLyChiTieu
         {
             try
             {
-                Console.WriteLine("\nNhập số thứ tự giao dịch cần sửa:");
-                int soThuTu = int.Parse(Console.ReadLine());
-
-                var giaoDich = danhSachGiaoDich.FirstOrDefault(g => g.SoThuTu == soThuTu);
-                if (giaoDich == null)
+                Console.WriteLine("\n--- Edit/Delete Transaction---");
+                if (danhSachGiaoDich == null || danhSachGiaoDich.Count == 0)
                 {
-                    Console.WriteLine("Không tìm thấy giao dịch.");
+                    Console.WriteLine("Transaction list is empty.");
                     return;
                 }
 
-                Console.WriteLine($"Thông tin giao dịch hiện tại: {JsonConvert.SerializeObject(giaoDich, Newtonsoft.Json.Formatting.Indented)}");
+                // Yêu cầu người dùng chọn giao dịch cần sửa hoặc xóa
+                Console.Write("Enter the transaction serial number to edit or delete: ");
+                if (!int.TryParse(Console.ReadLine(), out int soThuTu) || soThuTu <= 0 || soThuTu > danhSachGiaoDich.Count)
+                {
+                    Console.WriteLine("Invalid number!");
+                    return;
+                }
 
-                Console.WriteLine("Nhập mô tả mới (để trống nếu không muốn sửa):");
-                string moTaMoi = Console.ReadLine();
+                var giaoDich = danhSachGiaoDich.FirstOrDefault(gd => gd.SoThuTu == soThuTu);
+                if (giaoDich == null)
+                {
+                    Console.WriteLine("Transaction with the entered serial number not found.");
+                    return;
+                }
 
-                Console.WriteLine("Nhập số tiền mới (để trống nếu không muốn sửa):");
-                string soTienMoi = Console.ReadLine();
+                Console.WriteLine("\nWhat action would you like to perform?");
+                Console.WriteLine("1. Edit transaction");
+                Console.WriteLine("2. Delete transaction");
+                Console.Write("Select: ");
+                string luaChon = Console.ReadLine();
 
-                Console.WriteLine("Nhập danh mục mới (để trống nếu không muốn sửa):");
-                string danhMucMoi = Console.ReadLine();
+                if (luaChon == "1") // Sửa giao dịch
+                {
+                    Console.WriteLine("Enter new description (or press Enter to keep the same):");
+                    string moTaMoi = Console.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(moTaMoi))
+                    {
+                        giaoDich.MoTa = moTaMoi;
+                    }
 
-                if (!string.IsNullOrEmpty(moTaMoi)) giaoDich.MoTa = moTaMoi;
-                if (!string.IsNullOrEmpty(soTienMoi)) giaoDich.SoTien = double.Parse(soTienMoi);
-                if (!string.IsNullOrEmpty(danhMucMoi)) giaoDich.DanhMuc = danhMucMoi;
+                    Console.WriteLine("Enter the new amount (or press Enter to keep the same):");
+                    string soTienMoiStr = Console.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(soTienMoiStr) && double.TryParse(soTienMoiStr, out double soTienMoi))
+                    {
+                        giaoDich.SoTien = soTienMoi;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Input! or null. Your amount will be kept the same");
+                    }
 
-                Console.WriteLine("Giao dịch đã được cập nhật.");
+                    Console.WriteLine("Enter the new category (or press Enter to keep the same):");
+                    string danhMucMoi = Console.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(danhMucMoi))
+                    {
+                        giaoDich.DanhMuc = danhMucMoi;
+                    }
+
+                    Console.WriteLine("Enter the new time (yyyy-MM-dd HH:mm:ss, or press Enter to keep the same):");
+                    string thoiGianMoiStr = Console.ReadLine();
+                    if (!string.IsNullOrWhiteSpace(thoiGianMoiStr) && DateTime.TryParse(thoiGianMoiStr, out DateTime thoiGianMoi))
+                    {
+                        giaoDich.ThoiGian = thoiGianMoi;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Input! or null. Your time will be kept the same");
+                    }
+
+                    Console.WriteLine("Transaction has been successfully updated.");
+                }
+                else if (luaChon == "2") // Xóa giao dịch
+                {
+                    danhSachGiaoDich.Remove(giaoDich);
+                    Console.WriteLine("Transaction has been successfully deleted.");
+
+                    // Cập nhật lại số thứ tự
+                    for (int i = 0; i < danhSachGiaoDich.Count; i++)
+                    {
+                        danhSachGiaoDich[i].SoThuTu = i + 1;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Invalid selection!");
+                }
+
+                // Lưu dữ liệu vào file sau khi sửa hoặc xóa
                 LuuDuLieu();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi sửa giao dịch: {ex.Message}");
+                Console.WriteLine($"Error editing transaction: {ex.Message}");
             }
         }
-
         /// <summary>
         /// Chức năng 3: Truy xuất giao dịch
         /// </summary>
         static void TruyXuatGiaoDich()
         {
+            if (danhSachGiaoDich == null || danhSachGiaoDich.Count == 0)
+            {
+                Console.WriteLine("Transaction list is empty.");
+                return;
+            }
+            // Bắt đầu khối lệnh có thể xảy ra lỗi
             try
             {
-                Console.WriteLine("Chọn cách truy xuất giao dịch:");
-                Console.WriteLine("1. Nhập số thứ tự giao dịch.");
-                Console.WriteLine("2. Nhập khoảng thời gian.");
-                Console.WriteLine("Nhập lựa chọn (1 hoặc 2):");
+                // Hiển thị tùy chọn truy xuất giao dịch
+                Console.WriteLine("Choose a method to retrieve transactions:");
+
+                // Hiển thị: Chọn cách truy xuất giao dịch bằng số thứ tự
+                Console.WriteLine("1. Enter the transaction number.");
+
+                // Hiển thị: Chọn cách truy xuất giao dịch bằng khoảng thời gian
+                Console.WriteLine("2. Enter a time range.");
+
+                // Hiển thị: Yêu cầu nhập lựa chọn
+                Console.WriteLine("Enter your choice (1 or 2):");
+
+                // Lấy lựa chọn từ người dùng
                 string luaChon = Console.ReadLine();
 
+                // Kiểm tra nếu người dùng chọn phương án 1
                 if (luaChon == "1")
                 {
-                    Console.WriteLine("Nhập số thứ tự giao dịch:");
+                    // Hiển thị: Yêu cầu nhập số thứ tự giao dịch
+                    Console.WriteLine("Enter the transaction number:");
+
+                    // Kiểm tra và chuyển đổi đầu vào thành số nguyên
                     if (int.TryParse(Console.ReadLine(), out int soThuTu))
                     {
+                        // Tìm giao dịch theo số thứ tự
                         var giaoDich = danhSachGiaoDich.FirstOrDefault(g => g.SoThuTu == soThuTu);
 
+                        // Kiểm tra nếu tìm thấy giao dịch
                         if (giaoDich != null)
                         {
-                            Console.WriteLine("Thông tin giao dịch:");
+                            // Hiển thị: Thông tin giao dịch tìm thấy
+                            Console.WriteLine("Transaction details:");
+
+                            // Hiển thị giao dịch dưới dạng JSON
                             Console.WriteLine(JsonConvert.SerializeObject(giaoDich, Newtonsoft.Json.Formatting.Indented));
                         }
                         else
                         {
-                            Console.WriteLine("Không tìm thấy giao dịch với số thứ tự này.");
+                            // Hiển thị: Không tìm thấy giao dịch
+                            Console.WriteLine("No transaction found with this number.");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Số thứ tự không hợp lệ.");
+                        // Hiển thị: Số thứ tự không hợp lệ
+                        Console.WriteLine("Invalid transaction number.");
                     }
                 }
+                // Kiểm tra nếu người dùng chọn phương án 2
                 else if (luaChon == "2")
                 {
-                    Console.WriteLine("Nhập thời gian bắt đầu (yyyy-MM-dd):");
+                    // Hiển thị: Yêu cầu nhập thời gian bắt đầu
+                    Console.WriteLine("Enter the start date (yyyy-MM-dd):");
+
+                    // Lấy và chuyển đổi đầu vào thành kiểu ngày tháng
                     DateTime startTime = DateTime.Parse(Console.ReadLine());
 
-                    Console.WriteLine("Nhập thời gian kết thúc (yyyy-MM-dd):");
+                    // Hiển thị: Yêu cầu nhập thời gian kết thúc
+                    Console.WriteLine("Enter the end date (yyyy-MM-dd):");
+
+                    // Lấy và chuyển đổi đầu vào thành kiểu ngày tháng
                     DateTime endTime = DateTime.Parse(Console.ReadLine());
 
+                    // Lọc danh sách giao dịch theo khoảng thời gian
                     var ketQua = danhSachGiaoDich.Where(g => g.ThoiGian >= startTime && g.ThoiGian <= endTime).ToList();
 
+                    // Kiểm tra nếu có giao dịch trong khoảng thời gian
                     if (ketQua.Any())
                     {
-                        Console.WriteLine("Kết quả truy xuất:");
+                        // Hiển thị: Danh sách giao dịch trong khoảng thời gian
+                        Console.WriteLine("Retrieved transactions:");
                         foreach (var gd in ketQua)
                         {
+                            // Hiển thị từng giao dịch
                             Console.WriteLine(JsonConvert.SerializeObject(gd, Newtonsoft.Json.Formatting.Indented));
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Không tìm thấy giao dịch trong khoảng thời gian này.");
+                        // Hiển thị: Không tìm thấy giao dịch trong khoảng thời gian
+                        Console.WriteLine("No transactions found in this time range.");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Lựa chọn không hợp lệ.");
+                    // Hiển thị: Lựa chọn không hợp lệ
+                    Console.WriteLine("Invalid choice.");
                 }
             }
+            // Bắt lỗi nếu xảy ra ngoại lệ trong quá trình thực hiện
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi truy xuất giao dịch: {ex.Message}");
+                // Hiển thị: Lỗi khi truy xuất giao dịch
+                Console.WriteLine($"Error retrieving transactions: {ex.Message}");
             }
         }
 
+
         /// <summary>
-        /// Chức năng 4: Gợi ý tối ưu hóa chi tiêu
+        /// Chức năng 4: Quản lý và kiểm tra hạn mức
         /// </summary>
-        static async void GoiYToiUuHoaChiTieu()
+        static void QuanLyVaKiemTraHanMuc()
         {
-            try
+
+            if (danhSachGiaoDich == null || danhSachGiaoDich.Count == 0)
             {
-                // Gửi tất cả giao dịch tới API ChatGPT
-                string prompt = "Dưới đây là danh sách giao dịch chi tiêu. Hãy đề xuất cách tối ưu hóa chi tiêu cho từng giao dịch, nếu có thể. Nếu có giao dịch không cần thiết hoặc có thể giảm chi phí, hãy chỉ ra.";
-
-                // Tạo một chuỗi JSON để gửi tới API
-                var giaoDichJson = JsonConvert.SerializeObject(danhSachGiaoDich);
-                prompt += "\n\nDanh sách giao dịch:\n" + giaoDichJson;
-
-                // Gọi API ChatGPT để nhận gợi ý
-                string response = await GoiApiChatGPT(prompt);
-
-                // Hiển thị các gợi ý tối ưu hóa chi tiêu
-                Console.WriteLine("\nGợi ý tối ưu hóa chi tiêu từ hệ thống:");
-                Console.WriteLine(response);
+                Console.WriteLine("Transaction list is empty.");
+                return;
             }
-            catch (Exception ex)
+            // Hiển thị tiêu đề chức năng quản lý và kiểm tra hạn mức
+            Console.WriteLine("\n--- Manage and Check Budget Limits ---");
+
+            // Hiển thị tùy chọn nhập hoặc chỉnh sửa hạn mức
+            Console.WriteLine("1. Enter or edit budget limit");
+
+            // Hiển thị tùy chọn kiểm tra hạn mức theo tháng
+            Console.WriteLine("2. Check budget limit by month");
+
+            // Yêu cầu người dùng chọn chức năng
+            Console.Write("Choose an option: ");
+            string luaChon = Console.ReadLine();
+
+            // Xử lý lựa chọn của người dùng
+            switch (luaChon)
             {
-                Console.WriteLine($"Lỗi khi gợi ý tối ưu hóa chi tiêu: {ex.Message}");
+                case "1":
+                    // Chọn chức năng quản lý hạn mức
+                    QuanLyHanmuc();
+                    break;
+                case "2":
+                    // Chọn chức năng kiểm tra hạn mức
+                    KiemTraHanmuc();
+                    break;
+                default:
+                    // Thông báo lựa chọn không hợp lệ
+                    Console.WriteLine("Invalid choice. Please try again.");
+                    break;
             }
         }
-
-        static async Task<string> GoiApiChatGPT(string prompt)
+        // Hàm đọc dữ liệu hạn mức
+        static void DocDuLieuHanMuc()
         {
             try
             {
-                // Gọi API ChatGPT và nhận phản hồi
-                using (var client = new HttpClient())
+                // Kiểm tra xem tệp dữ liệu hạn mức có tồn tại không
+                if (File.Exists(hanMucFilePath))
                 {
-                    client.DefaultRequestHeaders.Add("Authorization", "Bearer YOUR_API_KEY"); // Thay YOUR_API_KEY bằng API key thực của bạn
-
-                    var content = new StringContent(
-                        Newtonsoft.Json.JsonConvert.SerializeObject(new
-                        {
-                            model = "gpt-3.5-turbo",
-                            messages = new[]
-                            {
-                        new { role = "system", content = "Bạn là một trợ lý tài chính." },
-                        new { role = "user", content = prompt }
-                            },
-                            max_tokens = 500
-                        }),
-                        Encoding.UTF8,
-                        "application/json"
-                    );
-
-                    var response = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
-                    string result = await response.Content.ReadAsStringAsync();
-
-                    dynamic jsonResponse = Newtonsoft.Json.JsonConvert.DeserializeObject(result);
-                    return jsonResponse.choices[0].message.content.Trim();
+                    // Đọc dữ liệu từ tệp JSON
+                    string jsonData = File.ReadAllText(hanMucFilePath);
+                    // Giải mã dữ liệu JSON thành danh sách hạn mức
+                    danhSachHanMuc = JsonConvert.DeserializeObject<List<TaiChinh.QuanLyNganSach>>(jsonData);
+                    // Thông báo thành công khi tải dữ liệu
+                    Console.WriteLine("The budget limit data has been successfully loaded.");
+                }
+                else
+                {
+                    // Thông báo nếu không tìm thấy tệp dữ liệu và tạo tệp mới
+                    Console.WriteLine("No budget limit data file found. Starting with an empty list.");
+                    File.Create(hanMucFilePath).Close();
+                    Console.WriteLine("Created a new budget limit file: " + hanMucFilePath);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi gọi API: {ex.Message}");
-                return "Không thể nhận gợi ý tối ưu hóa từ hệ thống.";
+                // Thông báo lỗi khi đọc dữ liệu
+                Console.WriteLine($"Error reading data: {ex.Message}");
+            }
+        }
+        // Hàm lưu dữ liệu hạn mức
+        public static void LuuDuLieuHanMuc()
+        {
+            try
+            {
+                // Chuyển đổi danh sách hạn mức thành JSON
+                string jsonData = JsonConvert.SerializeObject(danhSachHanMuc, Newtonsoft.Json.Formatting.Indented);
+
+                // Ghi dữ liệu JSON vào tệp
+                File.WriteAllText(hanMucFilePath, jsonData);
+
+                // Thông báo khi lưu dữ liệu thành công
+                Console.WriteLine("The data has been successfully saved to the file.");
+            }
+            catch (Exception ex)
+            {
+                // Thông báo lỗi khi lưu dữ liệu
+                Console.WriteLine($"Error saving data: {ex.Message}");
+            }
+        }
+        // Hàm quản lý hạn mức
+        static void QuanLyHanmuc()
+        {
+            // Đảm bảo rằng danhSachHanMuc không phải là null
+            if (danhSachHanMuc == null)
+            {
+                danhSachHanMuc = new List<TaiChinh.QuanLyNganSach>();
+            }
+
+            // Yêu cầu người dùng nhập tháng muốn quản lý hạn mức
+            Console.WriteLine("\nEnter the month you want to manage the budget limit (format: yyyy-MM):");
+            string thangNam = Console.ReadLine();
+
+            // Kiểm tra định dạng tháng nhập vào
+            if (!DateTime.TryParseExact(thangNam, "yyyy-MM", null, DateTimeStyles.None, out _))
+            {
+                // Thông báo nếu định dạng tháng không hợp lệ
+                Console.WriteLine("Invalid month format. Please enter in yyyy-MM format.");
+                return;
+            }
+
+            // Yêu cầu người dùng nhập hạn mức chi tiêu cho tháng
+            Console.WriteLine($"Enter the spending limit for {thangNam} (VND):");
+            if (!double.TryParse(Console.ReadLine(), out double hanMuc) || hanMuc < 0)
+            {
+                // Thông báo nếu hạn mức không hợp lệ
+                Console.WriteLine("Invalid budget limit. Please enter a positive number.");
+                return;
+            }
+
+            // Kiểm tra xem hạn mức đã tồn tại cho tháng này chưa
+            var hanMucTonTai = danhSachHanMuc.FirstOrDefault(h => h.ThangNam == thangNam);
+            if (hanMucTonTai != null)
+            {
+                // Cập nhật hạn mức nếu đã tồn tại
+                hanMucTonTai.HanMuc = hanMuc;
+            }
+            else
+            {
+                // Thêm hạn mức mới nếu chưa có
+                danhSachHanMuc.Add(new TaiChinh.QuanLyNganSach { ThangNam = thangNam, HanMuc = hanMuc });
+            }
+
+            // Lưu dữ liệu hạn mức
+            LuuDuLieuHanMuc();
+            // Thông báo đã cập nhật hạn mức
+            Console.WriteLine($"The budget limit for {thangNam} has been updated to {hanMuc} VND.");
+        }
+
+
+        // Hàm kiểm tra hạn mức       
+        static void KiemTraHanmuc()
+        {
+            if (danhSachHanMuc == null)
+            {
+                danhSachHanMuc = new List<TaiChinh.QuanLyNganSach>();
+            }
+
+            // Yêu cầu người dùng nhập tháng muốn kiểm tra hạn mức
+            Console.WriteLine("\nEnter the month you want to check the budget limit for (format: yyyy-MM):");
+            string thangNam = Console.ReadLine();
+
+            // Kiểm tra định dạng tháng nhập vào
+            if (!DateTime.TryParseExact(thangNam, "yyyy-MM", null, DateTimeStyles.None, out _))
+            {
+                // Thông báo nếu định dạng tháng không hợp lệ
+                Console.WriteLine("Invalid month format. Please enter in yyyy-MM format.");
+                return;
+            }
+
+            // Tính tổng chi tiêu trong tháng
+            var tongChiTieu = danhSachGiaoDich
+                .Where(gd => gd.ThoiGian.ToString("yyyy-MM") == thangNam)
+                .Sum(gd => gd.SoTien);
+
+            // Kiểm tra xem có hạn mức cho tháng này không
+            var hanMuc = danhSachHanMuc.FirstOrDefault(h => h.ThangNam == thangNam);
+
+            if (hanMuc != null)
+            {
+                // Tính tỷ lệ chi tiêu so với hạn mức
+                double tiLe = (tongChiTieu / hanMuc.HanMuc) * 100;
+
+                // Thông báo nếu vượt quá 100% hạn mức
+                if (tiLe >= 100)
+                {
+                    Console.WriteLine($"Warning: Total spending of {tongChiTieu} VND has exceeded the budget limit of {hanMuc.HanMuc} VND.");
+                }
+                // Thông báo nếu đạt từ 80% đến 100% hạn mức
+                else if (tiLe >= 80)
+                {
+                    Console.WriteLine($"Notice: Total spending of {tongChiTieu} VND has reached {tiLe:F2}% of the budget limit {hanMuc.HanMuc} VND.");
+                }
+                // Thông báo nếu đạt từ 50% đến 80% hạn mức
+                else if (tiLe >= 50)
+                {
+                    Console.WriteLine($"Notice: Total spending of {tongChiTieu} VND has reached {tiLe:F2}% of the budget limit {hanMuc.HanMuc} VND.");
+                }
+                // Thông báo nếu chi tiêu dưới 50% hạn mức
+                else
+                {
+                    Console.WriteLine($"Current total spending of {tongChiTieu} VND is within the budget limit of {hanMuc.HanMuc} VND.");
+                }
+            }
+            else
+            {
+                // Thông báo nếu không tìm thấy hạn mức cho tháng này
+                Console.WriteLine("No budget limit found for this month. Please set the budget first.");
             }
         }
 
+
         /// <summary>
-        /// Chức năng 5: Thống kê và báo cáo
+        /// Function 5: Statistics and Reports
         /// </summary>
         static void ThongKeBaoCao()
         {
-            Console.WriteLine("Chọn phương án thống kê:");
-            Console.WriteLine("1. Trong 1 năm");
-            Console.WriteLine("2. Trong 6 tháng");
-            Console.WriteLine("3. Trong 3 tháng");
-            Console.WriteLine("4. Trong 1 tháng");
-            Console.WriteLine("5. Trong 1 tuần");
-            Console.WriteLine("6. Tùy chỉnh");
-            Console.Write("Nhập lựa chọn của bạn (1-6): ");
+            if (danhSachGiaoDich == null || danhSachGiaoDich.Count == 0)
+            {
+                Console.WriteLine("Transaction list is empty.");
+                return;
+            }
+            // Hiển thị: Chọn phương án thống kê
+            Console.WriteLine("Select a reporting option:");
+            // Hiển thị: 1. Trong 1 năm
+            Console.WriteLine("1. In 1 year");
+            // Hiển thị: 2. Trong 6 tháng
+            Console.WriteLine("2. In 6 months");
+            // Hiển thị: 3. Trong 3 tháng
+            Console.WriteLine("3. In 3 months");
+            // Hiển thị: 4. Trong 1 tháng
+            Console.WriteLine("4. In 1 month");
+            // Hiển thị: 5. Trong 1 tuần
+            Console.WriteLine("5. In 1 week");
+            // Hiển thị: 6. Tùy chỉnh
+            Console.WriteLine("6. Custom range");
+            // Hiển thị: Nhập lựa chọn của bạn (1-6)
+            Console.Write("Enter your choice (1-6): ");
 
             int luaChon = int.Parse(Console.ReadLine());
             DateTime startDate = DateTime.Now, endDate = DateTime.Now;
 
             switch (luaChon)
             {
+                // Hiển thị: 1. Trong 1 năm
                 case 1:
                     startDate = DateTime.Now.AddYears(-1);
                     break;
+                // Hiển thị: 2. Trong 6 tháng
                 case 2:
                     startDate = DateTime.Now.AddMonths(-6);
                     break;
+                // Hiển thị: 3. Trong 3 tháng
                 case 3:
                     startDate = DateTime.Now.AddMonths(-3);
                     break;
+                // Hiển thị: 4. Trong 1 tháng
                 case 4:
                     startDate = DateTime.Now.AddMonths(-1);
                     break;
+                // Hiển thị: 5. Trong 1 tuần
                 case 5:
                     startDate = DateTime.Now.AddDays(-7);
                     break;
+                // Hiển thị: 6. Tùy chỉnh
                 case 6:
-                    Console.Write("Nhập ngày bắt đầu (dd/MM/yyyy): ");
+                    Console.Write("Enter start date (dd/MM/yyyy): ");
                     startDate = DateTime.ParseExact(Console.ReadLine(), "dd/MM/yyyy", null);
-                    Console.Write("Nhập ngày kết thúc (dd/MM/yyyy): ");
+                    Console.Write("Enter end date (dd/MM/yyyy): ");
                     endDate = DateTime.ParseExact(Console.ReadLine(), "dd/MM/yyyy", null);
                     break;
+                // Hiển thị: Lựa chọn không hợp lệ
                 default:
-                    Console.WriteLine("Lựa chọn không hợp lệ!");
+                    Console.WriteLine("Invalid choice!");
                     return;
             }
 
+            // Hiển thị: Nếu lựa chọn không phải là tùy chỉnh thì kết thúc ngày là hôm nay
             if (luaChon != 6) endDate = DateTime.Now;
 
-            // Thực hiện thống kê
+            // Thực hiện thống kê: Tính toán khoảng thời gian
             TimeSpan khoangThoiGian = endDate - startDate;
             if (khoangThoiGian.TotalDays > 30)
                 ThongKeTheoThang(startDate, endDate);
@@ -554,12 +921,20 @@ namespace QuanLyChiTieu
                 ThongKeTheoNgay(startDate, endDate);
         }
 
+        // Tính toán thống kê theo tháng
         static void ThongKeTheoThang(DateTime startDate, DateTime endDate)
         {
+            // Lọc giao dịch trong khoảng thời gian bắt đầu và kết thúc
             var giaoDichTrongKhoang = danhSachGiaoDich
                 .Where(gd => gd.ThoiGian >= startDate && gd.ThoiGian <= endDate)
                 .ToList();
+            if (!giaoDichTrongKhoang.Any())
+            {
+                Console.WriteLine("No transactions found in the selected period.");
+                return;
+            }
 
+            // Nhóm giao dịch theo tháng và tính tổng chi tiêu theo từng danh mục
             var chiTieuTheoThang = giaoDichTrongKhoang
                 .GroupBy(gd => new { gd.ThoiGian.Year, gd.ThoiGian.Month })
                 .Select(group => new
@@ -575,10 +950,15 @@ namespace QuanLyChiTieu
                         }).ToList()
                 }).ToList();
 
-            Console.WriteLine("\nThống kê chi tiêu theo tháng:");
+            // Hiển thị tiêu đề thống kê chi tiêu theo tháng
+            Console.WriteLine("\nMonthly Expense Report:");
+
+            // Duyệt qua từng tháng và hiển thị tổng chi tiêu
             foreach (var item in chiTieuTheoThang)
             {
-                Console.WriteLine($"Tháng {item.Thang:MM/yyyy}: {item.TongChiTieu} VND");
+                Console.WriteLine($"Month {item.Thang:MM/yyyy}: {item.TongChiTieu} VND");
+
+                // Hiển thị chi tiết theo từng danh mục
                 foreach (var dm in item.TheoDanhMuc)
                 {
                     decimal phanTram = ((decimal)dm.TongChiTieu / (decimal)item.TongChiTieu) * 100;
@@ -587,12 +967,20 @@ namespace QuanLyChiTieu
             }
         }
 
+        // Tính toán thống kê theo tuần
         static void ThongKeTheoTuan(DateTime startDate, DateTime endDate)
         {
+            // Lọc giao dịch trong khoảng thời gian bắt đầu và kết thúc
             var giaoDichTrongKhoang = danhSachGiaoDich
                 .Where(gd => gd.ThoiGian >= startDate && gd.ThoiGian <= endDate)
                 .ToList();
+            if (!giaoDichTrongKhoang.Any())
+            {
+                Console.WriteLine("No transactions found in the selected period.");
+                return;
+            }
 
+            // Nhóm giao dịch theo tuần và tính tổng chi tiêu
             var chiTieuTheoTuan = giaoDichTrongKhoang
                 .GroupBy(gd => CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(gd.ThoiGian, CalendarWeekRule.FirstDay, DayOfWeek.Monday))
                 .Select(group => new
@@ -603,29 +991,41 @@ namespace QuanLyChiTieu
                         .GroupBy(gd => gd.DanhMuc)
                         .Select(subGroup => new
                         {
-                            DanhMuc = subGroup.Key,
                             TongChiTieu = subGroup.Sum(gd => gd.SoTien)
                         }).ToList()
                 }).ToList();
 
-            Console.WriteLine("\nThống kê chi tiêu theo tuần:");
+            // Hiển thị tiêu đề thống kê chi tiêu theo tuần
+            Console.WriteLine("\nWeekly Expense Report:");
+
+            // Duyệt qua từng tuần và hiển thị tổng chi tiêu
             foreach (var item in chiTieuTheoTuan)
             {
-                Console.WriteLine($"Tuần {item.Tuan}: {item.TongChiTieu} VND");
+                Console.WriteLine($"Week {item.Tuan}: {item.TongChiTieu} VND");
+
+                // Hiển thị chi tiết chi tiêu
                 foreach (var dm in item.TheoDanhMuc)
                 {
                     decimal phanTram = ((decimal)dm.TongChiTieu / (decimal)item.TongChiTieu) * 100;
-                    Console.WriteLine($"   - {dm.DanhMuc}: {dm.TongChiTieu} VND ({phanTram:F2}%)");
+                    Console.WriteLine($"   - {dm.TongChiTieu} VND ({phanTram:F2}%)");
                 }
             }
         }
 
+        // Tính toán thống kê theo ngày
         static void ThongKeTheoNgay(DateTime startDate, DateTime endDate)
         {
+            // Lọc giao dịch trong khoảng thời gian bắt đầu và kết thúc
             var giaoDichTrongKhoang = danhSachGiaoDich
                 .Where(gd => gd.ThoiGian >= startDate && gd.ThoiGian <= endDate)
                 .ToList();
+            if (!giaoDichTrongKhoang.Any())
+            {
+                Console.WriteLine("No transactions found in the selected period.");
+                return;
+            }
 
+            // Nhóm giao dịch theo ngày và tính tổng chi tiêu cho từng ngày
             var chiTieuTheoNgay = giaoDichTrongKhoang
                 .GroupBy(gd => gd.ThoiGian.Date)
                 .Select(group => new
@@ -641,10 +1041,15 @@ namespace QuanLyChiTieu
                         }).ToList()
                 }).ToList();
 
-            Console.WriteLine("\nThống kê chi tiêu theo ngày:");
+            // Hiển thị báo cáo chi tiêu theo ngày
+            Console.WriteLine("\nDaily Expense Report:");
+
+            // Lặp qua từng ngày và hiển thị tổng chi tiêu
             foreach (var item in chiTieuTheoNgay)
             {
-                Console.WriteLine($"Ngày {item.Ngay:dd/MM/yyyy}: {item.TongChiTieu} VND");
+                Console.WriteLine($"Date {item.Ngay:dd/MM/yyyy}: {item.TongChiTieu} VND");
+
+                // Hiển thị chi tiết chi tiêu theo danh mục
                 foreach (var dm in item.TheoDanhMuc)
                 {
                     decimal phanTram = ((decimal)dm.TongChiTieu / (decimal)item.TongChiTieu) * 100;
@@ -653,73 +1058,131 @@ namespace QuanLyChiTieu
             }
         }
 
+
         /// <summary>
         /// Chức năng 6: Xuất/Nhập tệp dữ liệu
         /// </summary>
         static void XuatNhapDuLieu()
         {
-            Console.WriteLine("\n--- Xuất/Nhập Tệp Dữ Liệu ---");
-            Console.WriteLine("1. Nhập tệp dữ liệu");
-            Console.WriteLine("2. Xuất tệp dữ liệu");
-            Console.Write("Chọn chức năng: ");
+            // Hiển thị tiêu đề Xuất/Nhập Tệp Dữ Liệu
+            Console.WriteLine("\n--- Data Import/Export ---");
+
+            // Hiển thị lựa chọn nhập tệp dữ liệu
+            Console.WriteLine("1. Import data file");
+
+            // Hiển thị lựa chọn xuất tệp dữ liệu
+            Console.WriteLine("2. Export data file");
+
+            // Yêu cầu người dùng chọn chức năng
+            Console.Write("Select a function: ");
             string luaChon = Console.ReadLine();
 
+            // Kiểm tra lựa chọn của người dùng
             if (luaChon == "1")
             {
+                // Nếu chọn nhập tệp dữ liệu, gọi hàm NhapTepDuLieu
                 NhapTepDuLieu();
             }
             else if (luaChon == "2")
             {
+                // Nếu chọn xuất tệp dữ liệu, gọi hàm XuatTepDuLieu
                 XuatTepDuLieu();
             }
             else
             {
-                Console.WriteLine("Lựa chọn không hợp lệ.");
+                // Nếu lựa chọn không hợp lệ
+                Console.WriteLine("Invalid selection.");
             }
         }
+
 
         // Hàm nhập tệp dữ liệu
         static void NhapTepDuLieu()
         {
-            Console.WriteLine("\nChọn cách nhập tệp:");
-            Console.WriteLine("1. Nhập tệp mới (Thay thế tệp cũ)");
-            Console.WriteLine("2. Nhập tệp mới (Kết hợp với tệp cũ)");
-            Console.Write("Chọn chức năng: ");
+            // Chọn cách nhập tệp
+            Console.WriteLine("\nChoose the file import method:");
+            // Nhập tệp mới (Thay thế tệp cũ)
+            Console.WriteLine("1. Import new file (Replace old file)");
+            // Nhập tệp mới (Kết hợp với tệp cũ)
+            Console.WriteLine("2. Import new file (Merge with old file)");
+
+            // Chọn chức năng
+            Console.Write("Choose an option: ");
             string luaChon = Console.ReadLine();
 
-            Console.Write("Nhập đường dẫn tệp cần nhập: ");
-            string duongDanTep = Console.ReadLine();
-
-            // Kiểm tra định dạng tệp
-            if (!File.Exists(duongDanTep))
+            // Lựa chọn không hợp lệ
+            if (luaChon != "1" && luaChon != "2")
             {
-                Console.WriteLine("Tệp không tồn tại.");
+                // Lỗi khi lựa chọn không hợp lệ
+                Console.WriteLine("Invalid choice!");
                 return;
             }
 
-            string fileExtension = Path.GetExtension(duongDanTep).ToLower();
-            if (fileExtension != ".json" && fileExtension != ".csv" && fileExtension != ".txt")
+            // Nhập đường dẫn tệp cần nhập
+            Console.Write("Enter the file path to import: ");
+            string duongDanTep = Console.ReadLine();
+
+
+            // Kiểm tra xem tệp có tồn tại không
+            if (!File.Exists(duongDanTep))
             {
-                Console.WriteLine("Chỉ chấp nhận tệp có định dạng .json, .csv hoặc .txt.");
+                Console.WriteLine("The file does not exist.");
+                return;
+            }
+
+            // Lấy phần mở rộng của tệp và chuyển về chữ thường
+            string fileExtension = Path.GetExtension(duongDanTep).ToLower();
+
+            // Kiểm tra xem tệp có phải là .json hay không
+            if (fileExtension != ".json")
+            {
+                Console.WriteLine("Only .json files are accepted!");
                 return;
             }
 
             try
             {
+                // Kiểm tra lựa chọn của người dùng
                 if (luaChon == "1")
                 {
-                    // Thay thế dữ liệu cũ
-                    if (fileExtension == ".json")
+                    try
                     {
+                        // Đọc dữ liệu từ tệp B (đường dẫn do người dùng nhập)
                         string jsonData = File.ReadAllText(duongDanTep);
-                        danhSachGiaoDich = JsonConvert.DeserializeObject<List<GiaoDich>>(jsonData);
+                        var danhSachGiaoDichMoi = JsonConvert.DeserializeObject<List<TaiChinh.GiaoDich>>(jsonData);
+
+                        // Kiểm tra xem dữ liệu có hợp lệ không
+                        if (danhSachGiaoDichMoi == null)
+                        {
+                            Console.WriteLine("The data in the new file is invalid.");
+                            return;
+                        }
+
+                        // Yêu cầu người dùng nhập đường dẫn tệp cần thay thế
+                        Console.Write("Enter the path of the file to be replaced (old file): ");
+                        string duongDanTepCu = Console.ReadLine();
+
+                        // Kiểm tra xem tệp cũ có tồn tại không
+                        if (!File.Exists(duongDanTepCu))
+                        {
+                            Console.WriteLine("The old file does not exist, cannot replace it.");
+                            return;
+                        }
+
+                        // Lưu dữ liệu từ tệp B vào tệp A (tệp cũ)
+                        File.WriteAllText(duongDanTepCu, jsonData);
+
+                        // Cập nhật danh sách giao dịch trong chương trình
+                        danhSachGiaoDich = danhSachGiaoDichMoi;
+
+                        // Thông báo thành công
+                        Console.WriteLine("The data has been successfully replaced.");
                     }
-                    else if (fileExtension == ".csv" || fileExtension == ".txt")
+                    catch (Exception ex)
                     {
-                        // Chuyển đổi tệp CSV hoặc TXT thành JSON
-                        ChuyenDoiCSV_TXTThanhJSON(duongDanTep);
+                        // Thông báo lỗi nếu có sự cố khi nhập tệp
+                        Console.WriteLine($"Error when importing the data file: {ex.Message}");
                     }
-                    Console.WriteLine("Tệp đã được nhập và thay thế dữ liệu cũ.");
                 }
                 else if (luaChon == "2")
                 {
@@ -727,15 +1190,10 @@ namespace QuanLyChiTieu
                     if (fileExtension == ".json")
                     {
                         string jsonData = File.ReadAllText(duongDanTep);
-                        var danhSachGiaoDichMoi = JsonConvert.DeserializeObject<List<GiaoDich>>(jsonData);
+                        var danhSachGiaoDichMoi = JsonConvert.DeserializeObject<List<TaiChinh.GiaoDich>>(jsonData);
                         danhSachGiaoDich.AddRange(danhSachGiaoDichMoi);
+                        Console.WriteLine("The data has been successfully merged");
                     }
-                    else if (fileExtension == ".csv" || fileExtension == ".txt")
-                    {
-                        // Chuyển đổi tệp CSV hoặc TXT thành JSON và kết hợp
-                        ChuyenDoiCSV_TXTThanhJSON(duongDanTep);
-                    }
-                    Console.WriteLine("Tệp đã được nhập và kết hợp dữ liệu.");
                 }
 
                 // Lưu lại dữ liệu sau khi nhập
@@ -743,64 +1201,54 @@ namespace QuanLyChiTieu
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi nhập tệp dữ liệu: {ex.Message}");
+                // Thông báo lỗi nếu có sự cố khi nhập tệp
+                Console.WriteLine($"Error when importing the data file: {ex.Message}");
             }
-        }
-
-        // Hàm chuyển đổi CSV hoặc TXT thành JSON
-        static void ChuyenDoiCSV_TXTThanhJSON(string filePath)
-        {
-            // Đọc dữ liệu từ tệp CSV/TXT
-            var lines = File.ReadAllLines(filePath);
-            foreach (var line in lines)
-            {
-                var fields = line.Split(',');
-
-                if (fields.Length >= 5)
-                {
-                    danhSachGiaoDich.Add(new GiaoDich
-                    {
-                        SoThuTu = int.Parse(fields[0]),
-                        MoTa = fields[1],
-                        SoTien = double.Parse(fields[2]),
-                        DonViTienTe = fields[3],
-                        DanhMuc = fields[4],
-                        ThoiGian = DateTime.Parse(fields[5])
-                    });
-                }
-            }
-            Console.WriteLine("Dữ liệu từ CSV/TXT đã được chuyển đổi thành công.");
         }
 
         // Hàm xuất tệp dữ liệu
         static void XuatTepDuLieu()
         {
-            Console.WriteLine("\nChọn định dạng xuất tệp:");
-            Console.WriteLine("1. Xuất dưới định dạng JSON");
-            Console.WriteLine("2. Xuất dưới định dạng CSV");
-            Console.WriteLine("3. Xuất dưới định dạng TXT");
-            Console.Write("Chọn chức năng: ");
+            // Yêu cầu người dùng chọn định dạng xuất tệp
+            Console.WriteLine("\nSelect the file export format:");
+
+            // Tùy chọn xuất dưới định dạng JSON
+            Console.WriteLine("1. Export as JSON format");
+
+            // Tùy chọn xuất dưới định dạng CSV
+            Console.WriteLine("2. Export as CSV format");
+
+            // Tùy chọn xuất dưới định dạng TXT
+            Console.WriteLine("3. Export as TXT format");
+
+            // Yêu cầu người dùng chọn chức năng
+            Console.Write("Choose a function: ");
             string luaChon = Console.ReadLine();
 
             string duongDanTepXuat = string.Empty;
             string extension = string.Empty;
 
+            // Xử lý lựa chọn của người dùng
             switch (luaChon)
             {
                 case "1":
+                    // Nếu chọn xuất JSON
                     duongDanTepXuat = "dulieu_giaodich.json";
                     extension = ".json";
                     break;
                 case "2":
+                    // Nếu chọn xuất CSV
                     duongDanTepXuat = "dulieu_giaodich.csv";
                     extension = ".csv";
                     break;
                 case "3":
+                    // Nếu chọn xuất TXT
                     duongDanTepXuat = "dulieu_giaodich.txt";
                     extension = ".txt";
                     break;
                 default:
-                    Console.WriteLine("Lựa chọn không hợp lệ.");
+                    // Nếu lựa chọn không hợp lệ
+                    Console.WriteLine("Invalid choice.");
                     return;
             }
 
@@ -809,45 +1257,52 @@ namespace QuanLyChiTieu
                 // Xuất theo định dạng JSON
                 if (extension == ".json")
                 {
+                    // Chuyển danh sách giao dịch thành chuỗi JSON có định dạng đẹp (indentation)
                     string jsonData = JsonConvert.SerializeObject(danhSachGiaoDich, Newtonsoft.Json.Formatting.Indented);
+                    // Lưu dữ liệu vào tệp JSON
                     File.WriteAllText(duongDanTepXuat, jsonData);
                 }
                 // Xuất theo định dạng CSV
                 else if (extension == ".csv")
                 {
+                    // Tạo StringBuilder để xây dựng nội dung CSV
                     var sb = new StringBuilder();
-                    sb.AppendLine("Số thứ tự, Mô tả, Số tiền, Đơn vị tiền tệ, Danh mục, Thời gian");
-
+                    // Thêm tiêu đề cột bằng tiếng Anh
+                    sb.AppendLine("Serial Number, Description, Amount, Currency Unit, Category, Time");
+                    // Lặp qua từng giao dịch và thêm vào chuỗi CSV
                     foreach (var giaoDich in danhSachGiaoDich)
                     {
                         sb.AppendLine($"{giaoDich.SoThuTu},{giaoDich.MoTa},{giaoDich.SoTien},{giaoDich.DonViTienTe},{giaoDich.DanhMuc},{giaoDich.ThoiGian}");
                     }
-
+                    // Lưu dữ liệu vào tệp CSV
                     File.WriteAllText(duongDanTepXuat, sb.ToString());
                 }
                 // Xuất theo định dạng TXT
                 else if (extension == ".txt")
                 {
+                    // Tạo StringBuilder để xây dựng nội dung TXT
                     var sb = new StringBuilder();
-
+                    // Lặp qua từng giao dịch và thêm thông tin vào chuỗi TXT
                     foreach (var giaoDich in danhSachGiaoDich)
                     {
-                        sb.AppendLine($"Số thứ tự: {giaoDich.SoThuTu}");
-                        sb.AppendLine($"Mô tả: {giaoDich.MoTa}");
-                        sb.AppendLine($"Số tiền: {giaoDich.SoTien}");
-                        sb.AppendLine($"Đơn vị tiền tệ: {giaoDich.DonViTienTe}");
-                        sb.AppendLine($"Danh mục: {giaoDich.DanhMuc}");
-                        sb.AppendLine($"Thời gian: {giaoDich.ThoiGian}\n");
+                        sb.AppendLine($"Serial Number: {giaoDich.SoThuTu}");
+                        sb.AppendLine($"Description: {giaoDich.MoTa}");
+                        sb.AppendLine($"Amount: {giaoDich.SoTien}");
+                        sb.AppendLine($"Currency Unit: {giaoDich.DonViTienTe}");
+                        sb.AppendLine($"Category: {giaoDich.DanhMuc}");
+                        sb.AppendLine($"Time: {giaoDich.ThoiGian}\n");
                     }
-
+                    // Lưu dữ liệu vào tệp TXT
                     File.WriteAllText(duongDanTepXuat, sb.ToString());
                 }
 
-                Console.WriteLine($"Tệp đã được xuất thành công dưới định dạng {extension}.");
+                // Thông báo tệp đã được xuất thành công
+                Console.WriteLine($"The file has been successfully exported in {extension} format.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Lỗi khi xuất tệp dữ liệu: {ex.Message}");
+                // Thông báo lỗi nếu có sự cố khi xuất tệp
+                Console.WriteLine($"Error when exporting the data file: {ex.Message}");
             }
         }
     }
